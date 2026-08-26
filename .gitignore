@@ -1,0 +1,39 @@
+### シークレット（最優先） ###
+# SendGrid の API キーと Webhook 公開鍵は環境変数で渡す。ファイルに置かない
+.env
+.env.*
+!.env.example
+
+### Gradle / Kotlin ###
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.kotlin/
+
+### jOOQ 生成コード ###
+# app.propagandist.jooq.* は generateJooq が作る。src にはコミットしない（CLAUDE.md 参照）
+src/generated/
+
+### ログ ###
+*.log
+logs/
+
+### IDE ###
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+bin/
+.vscode/
+.settings/
+.project
+.classpath
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Claude Code ###
+# settings.json は commit する（環境が増えた日に漏れないように）。手元の permissions だけ除く
+.claude/settings.local.json
