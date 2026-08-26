@@ -35,19 +35,12 @@ recibir はこの四つに対する一つの答えです。
 
 ## 設計
 
-```
-SendGrid ──POST──> 受信エンドポイント
-                        │ ① 署名検証
-                        │ ② 生イベントを INSERT
-                        │ ③ 200 を返す
-                        ▼
-                   sendgrid_event（append-only）
-                        │ 非同期ワーカー
-                        ▼
-              email_address_state（導出状態）
-                        ▲
-                        │ 日次バッチ
-                   Suppression API
+```mermaid
+flowchart TD
+    SG[SendGrid] -->|POST| EP["受信エンドポイント<br>① 署名検証<br>② 生イベントを INSERT<br>③ 200 を返す"]
+    EP --> EV[("sendgrid_event<br>append-only")]
+    EV -->|非同期ワーカー| ST[("email_address_state<br>導出状態")]
+    API[Suppression API] -->|日次バッチ| ST
 ```
 
 ### 受信と解釈を分ける
