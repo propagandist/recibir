@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh .claude/hooks/reject-powershell-syntax.sh",
+            "statusMessage": "PowerShell 構文の混入を検査"
+          }
+        ]
+      }
+    ]
+  }
+}
