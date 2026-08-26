@@ -35,6 +35,14 @@ recibir はこの四つに対する一つの答えです。
 
 ## 設計
 
+この図は処理の流れだけを示します。**テーブル定義は載せません**——
+カラムと型は [docs/SPEC.md](docs/SPEC.md) §3、
+テーブル間の関係は [docs/er.md](docs/er.md) が正本です。
+
+読み取ってほしいのは 2 点。**受信エンドポイントが署名検証と INSERT で終わっている**こと。
+そして **導出状態へ入る経路が Webhook と Suppression API の 2 本ある**ことです。
+図の後の各節は、なぜこの形にしたかを書いています。
+
 ```mermaid
 flowchart TD
     SG[SendGrid] -->|POST| EP["受信エンドポイント<br>① 署名検証<br>② 生イベントを INSERT<br>③ 200 を返す"]
