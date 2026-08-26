@@ -11,7 +11,7 @@
 |---|---|---|
 | 形態 | リファレンス実装 | ライブラリ化・Starter 化はしない |
 | 公開目的 | PROPAGANDIST のブランディング | 利用拡大は非ゴール |
-| ライセンス | Apache License 2.0 | 著作権者は PROPAGANDIST株式会社 |
+| ライセンス | Apache License 2.0 | 著作権者は PROPAGANDIST CORPORATION |
 | DB | PostgreSQL のみ | 他 DB 対応は非ゴール |
 | 公開先 | <https://github.com/propagandist/recibir> | public。Apache-2.0。個人アカウントは不可 |
 | 記事 | Zenn に投稿 | 記事が主、リポジトリが裏付け |
