@@ -22,8 +22,6 @@
 
 以下は本リポジトリ外に草案がある。取り込んで整合を取ること。
 
-- `README.md` / `CONTRIBUTING.md` / `SECURITY.md` — ほぼ完成。
-  リポジトリ URL と連絡先の確定待ち
 - `SendGridSignatureVerifier.kt` — ほぼそのまま使える
 - `SendGridWebhookController.kt` / `SendGridEvent.kt` — 同上
 - `SendGridEventIngestService.kt` — jOOQ 生成クラス待ちでコンパイル不可
@@ -100,7 +98,6 @@ Kotlin の data class では use-site target を明示しないと
 
 ## 未決事項
 
-- [ ] `SECURITY.md` の連絡先（メールアドレスか問合せフォームか）
 - [ ] ライセンスヘッダを全ファイルに入れるか、`NOTICE` に集約するか
 - [ ] `EventProjector` のポーリング間隔（既定値を決める）
 - [ ] `SuppressionReconciler` の実行時刻
