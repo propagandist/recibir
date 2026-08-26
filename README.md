@@ -164,7 +164,7 @@ jOOQ はデュアルライセンスで、オープンソース DB では Apache 
 
 Apache License 2.0 — [LICENSE](LICENSE) を参照してください。
 
-Copyright PROPAGANDIST株式会社
+Copyright PROPAGANDIST CORPORATION
 
 SendGrid および Twilio は Twilio Inc. の商標です。本プロジェクトは
 Twilio Inc. とは無関係であり、公式に承認されたものではありません。
@@ -173,4 +173,4 @@ Twilio Inc. とは無関係であり、公式に承認されたものではあ�
 
 ## 作っているところ
 
-[PROPAGANDIST株式会社](https://propagandist.co.jp) — 横浜のシステム開発会社です。
+[PROPAGANDIST CORPORATION](https://propagandist.co.jp) — 横浜のシステム開発会社です。
