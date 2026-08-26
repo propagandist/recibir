@@ -13,7 +13,7 @@
 | 公開目的 | PROPAGANDIST のブランディング | 利用拡大は非ゴール |
 | ライセンス | Apache License 2.0 | 著作権者は PROPAGANDIST株式会社 |
 | DB | PostgreSQL のみ | 他 DB 対応は非ゴール |
-| 公開先 | GitHub Organization | 個人アカウントは不可 |
+| 公開先 | <https://github.com/propagandist/recibir> | public。Apache-2.0。個人アカウントは不可 |
 | 記事 | Zenn に投稿 | 記事が主、リポジトリが裏付け |
 
 **公開順序: リポジトリを先、記事を後。**
@@ -100,7 +100,6 @@ Kotlin の data class では use-site target を明示しないと
 
 ## 未決事項
 
-- [ ] GitHub Organization 名とリポジトリ URL
 - [ ] `SECURITY.md` の連絡先（メールアドレスか問合せフォームか）
 - [ ] ライセンスヘッダを全ファイルに入れるか、`NOTICE` に集約するか
 - [ ] `EventProjector` のポーリング間隔（既定値を決める）
