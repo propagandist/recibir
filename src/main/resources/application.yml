@@ -1,0 +1,11 @@
+# 手元の PostgreSQL への接続。compose.yaml と build.gradle.kts の flyway ブロックが
+# 同じ値を持つ。3 か所に出るのは、それぞれ見る主体が違うためである——
+# compose は DB を立てる側、flyway ブロックは codegen の前にスキーマを入れる側、
+# ここは起動したアプリが使う側。
+#
+# 実運用の接続先はここに書かない。recibir-ops が持つ（判断は #1）。
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:15432/recibir
+    username: recibir
+    password: recibir

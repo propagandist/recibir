@@ -1,0 +1,29 @@
+# 手元で PostgreSQL を立てるためだけの構成である。
+# ここに書いてある認証情報は秘密ではない——このリポジトリは public で、
+# 実運用の接続先は別リポジトリ（recibir-ops）が持つ（判断は #1）。
+# 環境変数へ逃がすと、読者が動かすまでの手順が 1 つ増えるだけになる。
+services:
+  postgres:
+    # CLAUDE.md「技術スタック」の下限が 16。patch 版まで固定しないのは、
+    # 読者が古い patch を強制的に持っていくことになるためである。
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: recibir
+      POSTGRES_USER: recibir
+      POSTGRES_PASSWORD: recibir
+    # ホスト側を 5432 にしない。開発機では既に別の PostgreSQL が動いていることが多く、
+    # この構成を書いた環境でも別プロジェクトが 5432 を占めていた（2026-08-27 実測）。
+    # 読者が最初に踏む障害を、こちらで先に外しておく。
+    ports:
+      - "15432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    # 立ち上がる前に flywayMigrate を打つと、接続拒否で落ちる。
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recibir -d recibir"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  postgres-data:

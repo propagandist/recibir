@@ -87,8 +87,19 @@
 
 ### jOOQ codegen の起動順
 上記 4 のとおり。CI でも `flywayMigrate` → `generateJooq` の順序が要る。
-Testcontainers で codegen 用の一時 DB を立てる構成にすると CI が楽になるが、
-ローカルとの二重管理になるのでどちらかに寄せること。
+
+**codegen 用の DB は `compose.yaml` に寄せました。** Testcontainers はテストの側で使うので、
+用途が違い、二重管理にはなりません。
+
+### Flyway の Gradle プラグインは Gradle 10 で動かなくなる
+
+`flywayMigrate` を打つと `Project.getProperties` の非推奨警告が出ます。
+**Gradle 10 ではエラーになります。** プラグインの内部が使っているものなので、
+こちらの設定では消せません。**12.4.0 と 13.4.0 の両方で同じ警告が出ました**
+（2026-08-27 実測）。
+
+Gradle を 10 へ上げる日には、プラグインの側が直っているかを先に確かめてください。
+直っていなければ、codegen 用の DB へスキーマを入れる経路を選び直すことになります。
 
 ### Spring Boot 4 と Jackson 3
 `ObjectMapper` を注入しようとして Bean が見つからない、
