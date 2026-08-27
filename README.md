@@ -150,7 +150,7 @@ EC P-256 の鍵ペアをテスト内で生成し、自己署名して検証す�
 | JDK | 25 |
 | Spring Boot | 4.1（Jackson 3 / `spring-boot-starter-webmvc`） |
 | DB | PostgreSQL のみ |
-| jOOQ | 3.20（Java 21+ が必要） |
+| jOOQ | Spring Boot の BOM が決める |
 
 PostgreSQL 以外に載せ替える場合、**jOOQ のライセンスを確認してください。**
 jOOQ はデュアルライセンスで、オープンソース DB では Apache License 2.0、
