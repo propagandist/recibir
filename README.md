@@ -124,7 +124,7 @@ docker compose up -d          # PostgreSQL
 ./gradlew flywayMigrate       # スキーマ適用（jOOQ codegen の前提）
 ./gradlew jooqCodegen         # jOOQ コード生成。通っていないと永続化層はコンパイルできない
 ./gradlew build
-./gradlew bootRun
+SENDGRID_WEBHOOK_PUBLIC_KEY=<SendGrid が配る公開鍵> ./gradlew bootRun
 ```
 
 SendGrid は公開 URL にしか POST しないため、ローカル開発では
@@ -134,6 +134,10 @@ ngrok / Cloudflare Tunnel などでトンネルを張ってください。
 SendGrid 管理画面の `Settings > Mail Settings > Signed Event Webhook Requests`
 で署名検証を有効化すると表示されます。
 Suppression API との突き合わせも動かす場合は `sendgrid.api.key` が追加で要ります。
+
+**既定値は置いていないので、鍵を渡さないと起動しません。** 空で起動できるようにすると、
+設定を忘れたまま全イベントを 403 で弾き続けることになり、それは「解こうとしている問題」が挙げた
+**最も気づきにくい障害**と同じ形になります——通知は 1 通も飛ばず、ログも静かなままです。
 
 > **順序に注意:** 受信側を検証対応にしてから SendGrid 側で有効化してください。
 > 逆にすると全イベントが 403 で弾かれます。
