@@ -12,6 +12,7 @@ plugins {
     kotlin("plugin.spring") version "2.3.21"
     id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
+    id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
 }
 
 group = "io.propagandist"
@@ -25,6 +26,13 @@ java {
 
 repositories {
     mavenCentral()
+}
+
+// ktlint 本体の版を固定する。プラグインが使う既定の版は
+// プラグインの patch 版の間でも変わりうると README が書いており、
+// 固定しないと検査の基準が黙って動く。
+ktlint {
+    version.set("1.8.0")
 }
 
 // 依存の解決済みグラフを commit するために有効にする。
