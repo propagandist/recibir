@@ -76,7 +76,7 @@ docker compose up -d              # PostgreSQL 起動
 ./gradlew bootRun
 ```
 
-**`generateJooq` が通っていないと、`app.propagandist.jooq.*` が存在せず
+**`generateJooq` が通っていないと、`io.propagandist.jooq.*` が存在せず
 永続化層は一切コンパイルできません。** 順序を守ってください。
 
 テストは SendGrid アカウントなしで通ること。CI もこの前提です。
@@ -84,14 +84,14 @@ docker compose up -d              # PostgreSQL 起動
 ## パッケージ構成
 
 ```
-app.propagandist.recibir
+io.propagandist.recibir
 ├── webhook/      受信・署名検証・生イベント投入
 ├── event/        イベント解釈・導出状態の再構築
 ├── reconcile/    Suppression API との突き合わせ
 └── config/       Security、スケジューラ
 ```
 
-生成コードは `app.propagandist.jooq` 以下（`src` にはコミットしない）。
+生成コードは `io.propagandist.jooq` 以下（`src` にはコミットしない）。
 
 ## コーディング規約
 
