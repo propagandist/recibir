@@ -24,6 +24,9 @@ plugins {
     // ずれると、起動時のマイグレーションと flywayMigrate が違う版の Flyway で動く。
     // Boot を上げたときは、この行も手で追随させること。
     id("org.flywaydb.flyway") version "12.4.0"
+    // jOOQ 本体と同じところが出しているプラグインで、版も本体に追随する。
+    // Boot の BOM が決める jOOQ ライブラリの版と同じ番号を書くこと。
+    id("org.jooq.jooq-codegen-gradle") version "3.21.7"
 }
 
 group = "io.propagandist"
@@ -37,6 +40,18 @@ java {
 
 repositories {
     mavenCentral()
+}
+
+// jOOQ の公式プラグインは、生成先をソースセットへ自動では足さない。
+// これが無いと io.propagandist.jooq.* を import した Kotlin が解決できない。
+//
+// この行が入った時点で、clone しただけではビルドが通らなくなる——
+// 生成コードを commit しない決定（CLAUDE.md）の裏返しである。
+// 先に docker compose up -d → flywayMigrate → jooqCodegen が要る。
+sourceSets {
+    main {
+        java.srcDir("src/generated")
+    }
 }
 
 // ktlint 本体の版を固定する。プラグインが使う既定の版は
@@ -53,6 +68,32 @@ flyway {
     url = "jdbc:postgresql://localhost:15432/recibir"
     user = "recibir"
     password = "recibir"
+}
+
+// 生成先は src/generated で、.gitignore が除外している。
+// 生成物を版管理に入れると、スキーマとの食い違いが「コミットし忘れ」として潜る。
+// 接続先は flyway ブロックと同じ——先に flywayMigrate でスキーマを入れておかないと、
+// ここは黙って空のコードを吐く。
+jooq {
+    configuration {
+        jdbc {
+            url = "jdbc:postgresql://localhost:15432/recibir"
+            user = "recibir"
+            password = "recibir"
+        }
+        generator {
+            database {
+                name = "org.jooq.meta.postgres.PostgresDatabase"
+                inputSchema = "public"
+                // Flyway の履歴テーブルはアプリが触らない。
+                excludes = "flyway_schema_history"
+            }
+            target {
+                packageName = "io.propagandist.jooq"
+                directory = "src/generated"
+            }
+        }
+    }
 }
 
 // 依存の解決済みグラフを commit するために有効にする。
@@ -75,6 +116,8 @@ dependencies {
     // Boot 4 は Jackson 3 が標準で、パッケージが tools.jackson.* に変わっている
     implementation("tools.jackson.module:jackson-module-kotlin")
     runtimeOnly("org.postgresql:postgresql")
+    // codegen は DB へ実接続してスキーマを読む。専用の configuration が要る。
+    jooqCodegen("org.postgresql:postgresql")
 
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-starter-jooq-test")

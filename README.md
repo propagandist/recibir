@@ -122,7 +122,7 @@ SendGrid は非 2xx を再送します。DB 障害時に 200 を返すとイベ�
 ```bash
 docker compose up -d          # PostgreSQL
 ./gradlew flywayMigrate       # スキーマ適用（jOOQ codegen の前提）
-./gradlew generateJooq        # jOOQ コード生成。通っていないと永続化層はコンパイルできない
+./gradlew jooqCodegen         # jOOQ コード生成。通っていないと永続化層はコンパイルできない
 ./gradlew build
 ./gradlew bootRun
 ```

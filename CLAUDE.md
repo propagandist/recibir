@@ -75,12 +75,12 @@ recibir — SendGrid Event Webhook 受信のリファレンス実装。
 ```bash
 docker compose up -d              # PostgreSQL 起動
 ./gradlew flywayMigrate           # スキーマ適用（codegen の前提）
-./gradlew generateJooq            # jOOQ コード生成
+./gradlew jooqCodegen             # jOOQ コード生成
 ./gradlew build                   # ビルド + テスト
 ./gradlew bootRun
 ```
 
-**`generateJooq` が通っていないと、`io.propagandist.jooq.*` が存在せず
+**`jooqCodegen` が通っていないと、`io.propagandist.jooq.*` が存在せず
 永続化層は一切コンパイルできません。** 順序を守ってください。
 
 テストは SendGrid アカウントなしで通ること。CI もこの前提です。

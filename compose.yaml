@@ -6,6 +6,13 @@ services:
   postgres:
     # CLAUDE.md「技術スタック」の下限が 16。patch 版まで固定しないのは、
     # 読者が古い patch を強制的に持っていくことになるためである。
+    #
+    # jooqCodegen が「Database version is older than what dialect
+    # SQLDialect.POSTGRES supports」と警告するが、生成は成功する。
+    # jOOQ 3.21.7 が想定しているのは 18 で、17 でも同じ警告が出た（2026-08-27 実測）。
+    # 18 へ上げれば消えるが、18 の公式イメージはデータの置き場所が
+    # /var/lib/postgresql へ変わっており、compose がその版でしか動かなくなる。
+    # 下限で動くことを示すほうを採った。
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: recibir
