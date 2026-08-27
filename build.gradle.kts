@@ -5,6 +5,13 @@ buildscript {
     configurations.classpath {
         resolutionStrategy.activateDependencyLocking()
     }
+    // Flyway の Gradle プラグインは、DB ごとのモジュールと JDBC ドライバを
+    // 自分の classpath に見つけられないと動かない。Boot の BOM はここまで効かないので、
+    // 版を手で書いて Boot が管理する版に合わせてある。
+    dependencies {
+        classpath("org.flywaydb:flyway-database-postgresql:12.4.0")
+        classpath("org.postgresql:postgresql:42.7.13")
+    }
 }
 
 plugins {
@@ -13,6 +20,10 @@ plugins {
     id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
+    // Boot の BOM が決めるのは Flyway ライブラリの版であって、Gradle プラグインの版ではない。
+    // ずれると、起動時のマイグレーションと flywayMigrate が違う版の Flyway で動く。
+    // Boot を上げたときは、この行も手で追随させること。
+    id("org.flywaydb.flyway") version "12.4.0"
 }
 
 group = "io.propagandist"
@@ -33,6 +44,15 @@ repositories {
 // 固定しないと検査の基準が黙って動く。
 ktlint {
     version.set("1.8.0")
+}
+
+// jOOQ の codegen はスキーマの入った DB を要求する。その DB を用意する経路は
+// compose.yaml に寄せた（Testcontainers はテストの側で使う）。
+// 接続先は compose.yaml と同じ値で、application.yml とも揃えてある。
+flyway {
+    url = "jdbc:postgresql://localhost:15432/recibir"
+    user = "recibir"
+    password = "recibir"
 }
 
 // 依存の解決済みグラフを commit するために有効にする。
