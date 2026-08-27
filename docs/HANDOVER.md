@@ -53,7 +53,7 @@
 3. **Flyway マイグレーション** — `V1__initial_schema.sql`
    `schema.sql` を元にする。`flywayMigrate` が通ること
 
-4. **jOOQ codegen** — `generateJooq` を実行
+4. **jOOQ codegen** — `jooqCodegen` を実行
    :::warning
    **3 が完了して DB にスキーマが存在しないと、コード生成は空になります。**
    ここを飛ばして 5 以降に進むと `io.propagandist.jooq.*` が解決できず、
@@ -86,7 +86,7 @@
 ## 詰まりやすいところ
 
 ### jOOQ codegen の起動順
-上記 4 のとおり。CI でも `flywayMigrate` → `generateJooq` の順序が要る。
+上記 4 のとおり。CI でも `flywayMigrate` → `jooqCodegen` の順序が要る。
 
 **codegen 用の DB は `compose.yaml` に寄せました。** Testcontainers はテストの側で使うので、
 用途が違い、二重管理にはなりません。

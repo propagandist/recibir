@@ -11,7 +11,7 @@ build/
 .kotlin/
 
 ### jOOQ 生成コード ###
-# io.propagandist.jooq.* は generateJooq が作る。src にはコミットしない（CLAUDE.md 参照）
+# io.propagandist.jooq.* は jooqCodegen が作る。src にはコミットしない（CLAUDE.md 参照）
 src/generated/
 
 ### ログ ###
