@@ -40,11 +40,15 @@ recibir — SendGrid Event Webhook 受信のリファレンス実装。
 | 項目 | バージョン |
 |---|---|
 | JDK | 25 |
-| Kotlin | 2.2.x |
 | Spring Boot | 4.1.x |
-| jOOQ | 3.20.x（Open Source Edition） |
+| Kotlin | Spring Boot の BOM が決める |
+| jOOQ | Spring Boot の BOM が決める（Open Source Edition） |
+| Flyway | Spring Boot の BOM が決める |
 | PostgreSQL | 16+ |
-| Flyway | Spring Boot 管理 |
+
+**決めているのは JDK と Spring Boot の版だけです。** 残りはそこから従属し、
+正本は `build.gradle.kts` と 3 本の lockfile になります。
+**ここへ版を書き写さないでください。** 写した瞬間から、Boot を上げても表は直りません。
 
 ## Spring Boot 4 の注意点
 
