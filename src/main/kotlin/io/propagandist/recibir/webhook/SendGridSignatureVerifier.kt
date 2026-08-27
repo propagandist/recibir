@@ -7,7 +7,6 @@ import java.security.Signature
 import java.security.spec.X509EncodedKeySpec
 import java.time.Clock
 import java.time.Duration
-import java.time.Instant
 import java.util.Base64
 
 /**
@@ -75,11 +74,20 @@ class SendGridSignatureVerifier(
      * タイムスタンプが許容幅の内側かを見る。
      *
      * 過去と未来の両方を見る。**過去だけを見ると、未来の値を送るだけで窓を素通りできる。**
+     *
+     * **エポック秒のまま比べ、`Instant` を作らない。** `Instant.ofEpochSecond` は
+     * `Instant` が扱える範囲を超えた値で `DateTimeException` を投げる。それは
+     * `RuntimeException` 系なので、このクラスの「すべて `false` に倒す」を素通りして
+     * 呼び出し側へ抜ける——**数値ではあるが極端に大きい値を送るだけで、
+     * 他の失敗と区別できるレスポンスを引き出せてしまう。**
+     *
+     * 比較する両端（`now ± 600 秒`）は現実的なエポック秒なので、桁あふれしない。
      */
     private fun isWithinAllowedSkew(timestamp: String): Boolean {
         val epochSeconds = timestamp.toLongOrNull() ?: return false
-        val skew = Duration.between(Instant.ofEpochSecond(epochSeconds), clock.instant()).abs()
-        return skew <= ALLOWED_SKEW
+        val nowSeconds = clock.instant().epochSecond
+        val allowed = ALLOWED_SKEW.seconds
+        return epochSeconds in (nowSeconds - allowed)..(nowSeconds + allowed)
     }
 
     private fun decodePublicKey(base64: String): PublicKey? =

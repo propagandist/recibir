@@ -173,6 +173,14 @@ class SendGridSignatureVerifierTest {
         assertFalse(verifier().verify(signature, "not-a-number", body))
     }
 
+    // 観点 11 の続き。数値ではあるが Instant の範囲に入らない値
+    @Test
+    fun `timestamp が Instant の範囲を超えていても例外を投げずに落ちる`() {
+        val signature = TestKeyPair.sign(keyPair, timestamp, body)
+        assertFalse(verifier().verify(signature, Long.MAX_VALUE.toString(), body))
+        assertFalse(verifier().verify(signature, Long.MIN_VALUE.toString(), body))
+    }
+
     // 観点 12
     @Test
     fun `空のボディ・空の署名・空の timestamp のどれでも落ちる`() {
