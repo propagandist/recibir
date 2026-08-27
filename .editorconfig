@@ -1,0 +1,7 @@
+root = true
+
+# ktlint の検査基準をここで固定する。ktlint の既定コードスタイルは
+# 版が上がると変わりうるので、いまの既定と同じ値でも書いておく。
+# 書かないと、ktlint を上げた日に基準が黙って動く。
+[*.{kt,kts}]
+ktlint_code_style = ktlint_official

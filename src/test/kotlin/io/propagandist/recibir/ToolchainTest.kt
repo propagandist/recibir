@@ -1,7 +1,7 @@
 package io.propagandist.recibir
 
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
 
 /**
  * ビルドが意図した JDK で走っていることを確かめる。
