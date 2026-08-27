@@ -30,7 +30,7 @@
 - `build.gradle.kts` — codegen 設定を含む雛形
 
 パッケージは `app.propagandist.sendgrid.webhook` で書かれている。
-`app.propagandist.recibir.*` に置き換えること。
+`io.propagandist.recibir.*` に置き換えること。
 
 ## 作業順序
 
@@ -48,7 +48,7 @@
 4. **jOOQ codegen** — `generateJooq` を実行
    :::warning
    **3 が完了して DB にスキーマが存在しないと、コード生成は空になります。**
-   ここを飛ばして 5 以降に進むと `app.propagandist.jooq.*` が解決できず、
+   ここを飛ばして 5 以降に進むと `io.propagandist.jooq.*` が解決できず、
    永続化層が一切コンパイルできません。原因が分かりにくいので必ず先に通すこと。
    :::
 
