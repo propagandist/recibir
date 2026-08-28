@@ -10,6 +10,17 @@ spring:
     username: recibir
     password: recibir
 
+# 構造化ログを 1 行の JSON で stdout へ出す（#5）。形式の定義と、組み込みの ecs を
+# 使わなかった理由は config/CloudLoggingFormat.kt にある。
+#
+# これは docs/SPEC.md §5 の「設定項目」ではない。あちらが増やさないと決めているのは
+# sendgrid.* であり、ログの出力先や形式を運用側が差し替えられるようにするものでもない
+# ——値はここに固定してあり、環境変数で切り替わる余地を作っていない。
+logging:
+  structured:
+    format:
+      console: io.propagandist.recibir.config.CloudLoggingFormat
+
 # 受信に必要な設定はこれだけである（docs/SPEC.md §5）。
 # 値は SendGrid の管理画面 Settings > Mail Settings > Signed Event Webhook Requests に出る。
 #

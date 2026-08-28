@@ -4,6 +4,7 @@ import io.propagandist.jooq.Tables.SENDGRID_EVENT
 import org.jooq.DSLContext
 import org.jooq.JSONB
 import org.jooq.Query
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import tools.jackson.core.JacksonException
@@ -42,12 +43,49 @@ class SendGridEventIngestService(
      */
     @Transactional
     fun ingest(rawBody: ByteArray) {
-        val queries = buildInsertQueries(rawBody) ?: return
-        if (queries.isEmpty()) return
+        val parsed = buildInsertQueries(rawBody)
+        if (parsed == null) {
+            // 退避先のテーブルは作っていない（下の insertQuery の KDoc）。
+            // 気づく手段はこの 1 行だけである。**ボディは載せない**——
+            // 解釈できなかった以上、何が入っているか分からないものをログへ流すことになる
+            log
+                .atWarn()
+                .addKeyValue("event", "event.unparseable")
+                .log("discarded a verified webhook body that could not be interpreted")
+            return
+        }
 
         // 1 リクエストにつき単一の PreparedStatement へ集約する（docs/SPEC.md §4.3 / §6）。
         // 下の insertQuery が常に同じ列を並べるので、SQL は件数によらず 1 種類で済む。
-        dsl.batch(queries).execute()
+        val results =
+            if (parsed.isEmpty()) IntArray(0) else dsl.batch(parsed.map { it.second }).execute()
+        logIngested(parsed.map { it.first }, results)
+    }
+
+    /**
+     * 何件受け取って何件入ったかを出す。
+     *
+     * **`received` と `inserted` を両方出すのが要点である**（#5）。前者だけでは
+     * 再送された重複を実数と読んでしまい、後者だけでは**全部重複だった状態と、
+     * そもそも受信できていない状態が同じ 0 に見える**。
+     * 後者を分けるのは `webhook.received`（[SendGridWebhookController]）の役割で、
+     * あちらが出ていなければ受信自体が止まっている。
+     *
+     * 内訳は**新規に入った分だけ**を数える。重複を含めると、再送のたびに
+     * 同じバウンスが増えていくように見える。
+     */
+    private fun logIngested(
+        events: List<SendGridEvent>,
+        results: IntArray,
+    ) {
+        val inserted = events.filterIndexed { index, _ -> results[index] > 0 }
+        log
+            .atInfo()
+            .addKeyValue("event", "event.ingested")
+            .addKeyValue("received", events.size)
+            .addKeyValue("inserted", inserted.size)
+            .addKeyValue("by_type", inserted.groupingBy { it.event }.eachCount())
+            .log("ingested events")
     }
 
     /**
@@ -65,9 +103,13 @@ class SendGridEventIngestService(
      * （README「200 と 500 の切り分け」）。
      *
      * **退避先のテーブルは作っていない。** 解釈できないボディを保存しても、
-     * 解釈できない以上そこから再処理はできない。気づく手段はログで、それは #5 が持つ。
+     * 解釈できない以上そこから再処理はできない。気づく手段は [ingest] が出す
+     * `event.unparseable` の 1 行だけである（#5）。
+     *
+     * **解釈したイベントを、作った文と対にして返す。** 呼び出し側が種類別の内訳を
+     * 数えるためである——文だけを返すと、何が入ったのかが投入後に分からなくなる。
      */
-    private fun buildInsertQueries(rawBody: ByteArray): List<Query>? =
+    private fun buildInsertQueries(rawBody: ByteArray): List<Pair<SendGridEvent, Query>>? =
         try {
             val root = jsonMapper.readTree(rawBody)
             // values() を挟む。Jackson 3 の JsonNode は Iterable<JsonNode> ではなくなっており、
@@ -90,24 +132,29 @@ class SendGridEventIngestService(
      * キーの順序は保たれ、失われるのは空白だけである。
      * **同じ理屈を受信ボディに当てはめてはいけない**（`docs/repository-layout.md` 観点 3）。
      */
-    private fun insertQuery(node: JsonNode): Query {
+    private fun insertQuery(node: JsonNode): Pair<SendGridEvent, Query> {
         val event = jsonMapper.treeToValue(node, SendGridEvent::class.java)
-        return dsl
-            .insertInto(SENDGRID_EVENT)
-            .set(SENDGRID_EVENT.SG_EVENT_ID, event.sgEventId)
-            .set(SENDGRID_EVENT.SG_MESSAGE_ID, event.sgMessageId)
-            .set(SENDGRID_EVENT.SMTP_ID, event.smtpId)
-            .set(SENDGRID_EVENT.EMAIL, event.email)
-            .set(SENDGRID_EVENT.EVENT, event.event)
-            .set(SENDGRID_EVENT.BOUNCE_TYPE, event.bounceType)
-            .set(SENDGRID_EVENT.REASON, event.reason)
-            .set(SENDGRID_EVENT.STATUS, event.status)
-            .set(SENDGRID_EVENT.JOB_ID, event.jobId)
-            // SendGrid 側の時刻。received_at は DB の DEFAULT に任せるので、ここでは触らない
-            .set(SENDGRID_EVENT.OCCURRED_AT, Instant.ofEpochSecond(event.timestamp).atOffset(ZoneOffset.UTC))
-            .set(SENDGRID_EVENT.PAYLOAD, JSONB.valueOf(node.toString()))
-            // 冪等キー。SendGrid は同じイベントを再送する（docs/SPEC.md §3.1）
-            .onConflict(SENDGRID_EVENT.SG_EVENT_ID)
-            .doNothing()
+        return event to
+            dsl
+                .insertInto(SENDGRID_EVENT)
+                .set(SENDGRID_EVENT.SG_EVENT_ID, event.sgEventId)
+                .set(SENDGRID_EVENT.SG_MESSAGE_ID, event.sgMessageId)
+                .set(SENDGRID_EVENT.SMTP_ID, event.smtpId)
+                .set(SENDGRID_EVENT.EMAIL, event.email)
+                .set(SENDGRID_EVENT.EVENT, event.event)
+                .set(SENDGRID_EVENT.BOUNCE_TYPE, event.bounceType)
+                .set(SENDGRID_EVENT.REASON, event.reason)
+                .set(SENDGRID_EVENT.STATUS, event.status)
+                .set(SENDGRID_EVENT.JOB_ID, event.jobId)
+                // SendGrid 側の時刻。received_at は DB の DEFAULT に任せるので、ここでは触らない
+                .set(SENDGRID_EVENT.OCCURRED_AT, Instant.ofEpochSecond(event.timestamp).atOffset(ZoneOffset.UTC))
+                .set(SENDGRID_EVENT.PAYLOAD, JSONB.valueOf(node.toString()))
+                // 冪等キー。SendGrid は同じイベントを再送する（docs/SPEC.md §3.1）
+                .onConflict(SENDGRID_EVENT.SG_EVENT_ID)
+                .doNothing()
+    }
+
+    private companion object {
+        val log = LoggerFactory.getLogger(SendGridEventIngestService::class.java)
     }
 }
