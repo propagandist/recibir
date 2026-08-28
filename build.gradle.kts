@@ -124,6 +124,20 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-flyway-test")
     testImplementation("org.springframework.boot:spring-boot-starter-security-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    // DB を伴うテストは Testcontainers を使う（CLAUDE.md「テスト方針」）。
+    // compose.yaml の DB は codegen 用で、用途が違う（docs/HANDOVER.md「詰まりやすいところ」）。
+    // 版は Boot の BOM が持つ testcontainers-bom が決める。
+    //
+    // artifactId に testcontainers- が付く。Boot 4.1 の BOM が決めるのは 2.0.5 で、
+    // 1.x の org.testcontainers:postgresql は 2.x に存在しない
+    // （2026-08-28 実測。解決が FAILED になる）。
+    //
+    // spring-boot-testcontainers（@ServiceConnection）も junit-jupiter の拡張
+    // （@Testcontainers / @Container）も入れない。コンテナはテストクラスをまたいで
+    // 1 つだけ立てたいので自分で start() し（test/support/PostgresContainer.kt）、
+    // 接続情報は @DynamicPropertySource で流す——公開鍵をテストへ渡す経路と
+    // 同じ仕組みになり、読む人が覚えるものが 1 つで済む。
+    testImplementation("org.testcontainers:testcontainers-postgresql")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
