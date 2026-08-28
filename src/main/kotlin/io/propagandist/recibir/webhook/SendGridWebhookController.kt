@@ -10,9 +10,8 @@ import org.springframework.web.bind.annotation.RestController
 /**
  * SendGrid Event Webhook の受信口。
  *
- * 応答の対応表は `docs/SPEC.md` §4.2 が正本である。ここが持つのは署名検証だけで、
- * **通ったものを 200、通らなかったものを 403 に倒す**。
- * 生イベントの投入は後から足す（`docs/HANDOVER.md` の作業順序 7）。
+ * 応答の対応表は `docs/SPEC.md` §4.2 が正本である。ここが持つのは署名検証と、
+ * 通ったものを [SendGridEventIngestService] へ渡すことだけである。
  *
  * **JSON をパースしない。** `payload` に入れるのは生ノードであり（同 §4.3）、
  * パースの結果を要るのは投入側である。ここでパースすると同じ木を 2 回作ることになる。
@@ -20,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class SendGridWebhookController(
     private val verifier: SendGridSignatureVerifier,
+    private val ingestService: SendGridEventIngestService,
 ) {
     /**
      * イベント配列を受け取る。
@@ -40,6 +40,10 @@ class SendGridWebhookController(
     ): ResponseEntity<Void> {
         if (signature == null || timestamp == null || body == null) return forbidden()
         if (!verifier.verify(signature, timestamp, body)) return forbidden()
+
+        // 解釈できないペイロードでも例外は上がってこない。200 で受け切る（上の KDoc）。
+        // 上がってくるのは DB 障害で、それは 500 になって SendGrid に再送させる
+        ingestService.ingest(body)
         return ResponseEntity.ok().build()
     }
 
