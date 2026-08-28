@@ -94,6 +94,17 @@
 **codegen 用の DB は `compose.yaml` に寄せました。** Testcontainers はテストの側で使うので、
 用途が違い、二重管理にはなりません。
 
+### テストに Docker が要る
+
+投入と受信の結合テストは Testcontainers で PostgreSQL を立てます（#34）。
+**Docker が動いていないと `./gradlew build` が通りません。**
+
+`compose.yaml` の DB では代用できません。あちらは codegen 用で、
+テストがスキーマを汚すと次の `jooqCodegen` の入力が変わります。
+
+**作業順序 12 で CI を書く日にも効きます。** SendGrid アカウントが要らないという前提は
+変わりませんが、**ランナーで Docker が使えること**という前提が増えました。
+
 ### Flyway の Gradle プラグインは Gradle 10 で動かなくなる
 
 `flywayMigrate` を打つと `Project.getProperties` の非推奨警告が出ます。
