@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
@@ -30,6 +31,13 @@ import kotlin.test.assertTrue
 class SendGridWebhookControllerTest {
     @Autowired
     private lateinit var mockMvc: MockMvc
+
+    /**
+     * 投入は差し替える。**ここで見ているのは応答だけ**で、DB へ入ったかは
+     * `SendGridWebhookIngestTest` が実物で確かめる。
+     */
+    @MockitoBean
+    private lateinit var ingestService: SendGridEventIngestService
 
     private val timestamp = Instant.now().epochSecond.toString()
     private val body = """[{"email":"user@example.com","event":"delivered","sg_event_id":"abc"}]""".toByteArray()
