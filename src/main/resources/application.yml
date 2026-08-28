@@ -9,3 +9,13 @@ spring:
     url: jdbc:postgresql://localhost:15432/recibir
     username: recibir
     password: recibir
+
+# 受信に必要な設定はこれだけである（docs/SPEC.md §5）。
+# 値は SendGrid の管理画面 Settings > Mail Settings > Signed Event Webhook Requests に出る。
+#
+# 既定値を書かない。空を既定にすると鍵を設定し忘れたまま起動でき、
+# 全イベントが 403 で弾かれるのに何も落ちない状態になる（README「最も気づきにくい障害」）。
+# 環境変数が無ければ、ここで起動が止まる。
+sendgrid:
+  webhook:
+    public-key: ${SENDGRID_WEBHOOK_PUBLIC_KEY}

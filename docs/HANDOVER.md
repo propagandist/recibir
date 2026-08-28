@@ -74,7 +74,10 @@
 
 9. **`SuppressionReconciler`** — SendGrid API はテストではスタブ化
 
-10. **`SecurityConfig`** — 各チェーンの疎通テスト
+10. **`SecurityConfig`** — 各チェーンの疎通テスト。
+    **webhook と app の 2 本は 6 で先に置いた**（#32）。ここで足すのは oauth チェーンである。
+    6 を待たせなかったのは、**Security が既定のままでは受信エンドポイントが
+    CSRF と認証で弾かれ、README「動かす」が通らないまま残る**ためである
 
 11. **`docs/design.md`** — 設計判断の理由を記録。
     **これはリファレンス実装の中核成果物**。実装のついでではなく独立したタスク
