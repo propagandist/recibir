@@ -138,7 +138,6 @@ Kotlin の data class では use-site target を明示しないと
 ## 未決事項
 
 - [ ] ライセンスヘッダを全ファイルに入れるか、`NOTICE` に集約するか
-- [ ] `EventProjector` のポーリング間隔（既定値を決める）
 - [ ] `SuppressionReconciler` の実行時刻
 
 ## やらないこと（再確認）
