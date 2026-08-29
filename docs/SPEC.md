@@ -137,15 +137,31 @@ ECDSA（`SHA256withECDSA`、EC P-256）による署名検証。
 
 ### 4.5 `SuppressionReconciler`（`reconcile/`）
 
-日次バッチ。以下を取得し `email_address_state` と突き合わせる。
+日次バッチ（03:00 UTC）。以下を**全件**取得し `email_address_state` と突き合わせる。
+**期間で絞らない**——取りこぼしは絞った窓の外に落ちたまま、永久に見つからない。
 
-- `GET /v3/suppression/bounces`
-- `GET /v3/suppression/blocks`
-- `GET /v3/suppression/invalid_emails`
-- `GET /v3/suppression/spam_reports`
+| エンドポイント | 差分と数えるもの | 補完 |
+|---|---|---|
+| `GET /v3/suppression/spam_reports` | 行が無い、または `sendable = true` | `spam_report` |
+| `GET /v3/suppression/bounces` | 同上 | `hard_bounce` |
+| `GET /v3/suppression/invalid_emails` | 同上 | `invalid` |
+| `GET /v3/suppression/blocks` | **行が無いものだけ** | **書き換えない** |
 
-差分が出た場合は Webhook の取りこぼしを意味するため、警告ログを出す。
-SendGrid 側を正とする。
+上から順に見て、先に当たった `reason_code` が残る（§4.4 の優先度に合わせてある）。
+
+差分が出た場合は Webhook の取りこぼしを意味するため、警告ログを出す
+（§4.7 の `reconcile.drift`）。**差分が 0 のときは出さない**——毎日出続けると、
+監視の側に無視する習慣ができる。
+
+**SendGrid 側を正とする。ただし落とす方向だけである。** SendGrid 側に無いものを
+こちらから消さない——抑制リストは運用者が手で外すことがあり、それを
+「送ってよくなった」と読むと、**外した瞬間に過去のバウンス先へ送り始める。**
+
+**`blocks` は状態を書き換えない。** §4.4 が `blocked` で `sendable` を落とさないのと
+同じ理由で、**一時的な失敗だから**である。落とすと、SendGrid 側が外した日に戻せない。
+
+`last_failure_at` と `soft_bounce_count` にも触らない。どちらも Webhook 由来の値で、
+Suppression API の `created` は「リストに載った時刻」である。
 
 ### 4.6 セキュリティ設定（`config/`）
 
