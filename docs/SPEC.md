@@ -117,12 +117,23 @@ ECDSA（`SHA256withECDSA`、EC P-256）による署名検証。
 
 `sendgrid_event` から `email_address_state` を再構築する非同期処理。
 
-- 未処理イベントのポーリング（`@Scheduled`）で開始する。
-  月数万通規模ではメッセージキューは不要
+- **直近に受信したイベント**のアドレスを `@Scheduled` のポーリングで拾う。
+  間隔は 1 分、窓は `received_at` で 10 分。月数万通規模ではメッセージキューは不要
+- **処理済みを記録しない。** 状態は対象アドレスの全イベントから決まるので、
+  同じアドレスを何度作り直しても結果は同じである。**窓が間隔より長いのは無駄ではない**
+  ——1 回失敗しても、次の回で拾える
 - **単発イベントで上書きしない。** 対象アドレスの全イベントから状態を決定する
 - 状態決定の優先度:
-  `spamreport` > `bounce`(type=bounce) > `dropped` > `deferred` > `delivered`
-- 全件再構築を行うコマンドを用意する（解釈ロジック修正時の再処理用）
+  `spamreport` > `bounce`(type=bounce) > `unsubscribe` > `dropped` > `deferred` > `delivered`
+- **`unsubscribe` は `dropped` より前に置く。** `dropped` は「抑制リストに載っていたので
+  捨てた」という**結果**で、`unsubscribe` はその**原因**である。
+  `dropped` しか無いアドレスには `reason_code` を付けない——理由は他のイベントが持つ
+- **`deferred` と `blocked`（`bounce` の `type`）では `sendable` を落とさない。**
+  どちらも一時的な失敗で、`soft_bounce_count` と `last_failure_at` だけが動く
+- **`unsubscribe` では `last_failure_at` を更新しない。** 購読解除は失敗ではない
+- **`group_unsubscribe` / `group_resubscribe` は状態の外に置く。**
+  グループ単位の購読可否は SendGrid 側が持ち、このテーブルとは粒度が違う
+- `--rebuild-all` を付けて起動すると全件を作り直す（解釈ロジック修正時の再処理用）
 
 ### 4.5 `SuppressionReconciler`（`reconcile/`）
 
@@ -182,8 +193,9 @@ OAuth 有効時の `AuthenticationEntryPoint` は、**レスポンスボディ�
 監視基盤があれば、アプリ側の実装は要らない。これが無いと、**通知が来ないことが
 「配信が全部成功している」なのか「Webhook が全部弾かれている」なのか区別できない。**
 
-**メールアドレスはマスクする。** ローカル部を伏せ、ドメインは残す（`u***@example.com`）。
+**メールアドレスはマスクする。** ローカル部を伏せ、ドメインは残す（`***@example.com`）。
 特定ドメインへの集中的な配信不能をログだけで読むためで、個人の特定は DB を引いて行う。
+**ローカル部は 1 文字も残さない**——先頭を残す形にすると、1 文字のローカル部がそのまま全部出る。
 **`webhook.rejected` と `event.unparseable` には載せない**——検証を通っていない入力と、
 解釈できなかった入力は、何が入っているか分からない。
 
