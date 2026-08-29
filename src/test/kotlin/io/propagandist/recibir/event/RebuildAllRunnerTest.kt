@@ -3,7 +3,7 @@ package io.propagandist.recibir.event
 import io.propagandist.jooq.Tables.EMAIL_ADDRESS_STATE
 import io.propagandist.jooq.Tables.SENDGRID_EVENT
 import io.propagandist.recibir.support.PostgresContainer
-import io.propagandist.recibir.support.TestKeyPair
+import io.propagandist.recibir.support.registerSendGridProperties
 import org.jooq.DSLContext
 import org.jooq.JSONB
 import org.junit.jupiter.api.BeforeEach
@@ -75,7 +75,7 @@ class RebuildAllRunnerTest {
         @DynamicPropertySource
         fun properties(registry: DynamicPropertyRegistry) {
             PostgresContainer.register(registry)
-            registry.add("sendgrid.webhook.public-key") { TestKeyPair.publicKeyBase64(TestKeyPair.generate()) }
+            registerSendGridProperties(registry)
         }
     }
 }

@@ -2,6 +2,7 @@ package io.propagandist.recibir.webhook
 
 import io.propagandist.recibir.config.SecurityConfig
 import io.propagandist.recibir.support.TestKeyPair
+import io.propagandist.recibir.support.registerSendGridProperties
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
@@ -127,7 +128,7 @@ class SendGridWebhookControllerTest {
         @JvmStatic
         @DynamicPropertySource
         fun publicKey(registry: DynamicPropertyRegistry) {
-            registry.add("sendgrid.webhook.public-key") { TestKeyPair.publicKeyBase64(KEY_PAIR) }
+            registerSendGridProperties(registry, TestKeyPair.publicKeyBase64(KEY_PAIR))
         }
     }
 }
