@@ -2,7 +2,7 @@ package io.propagandist.recibir.webhook
 
 import io.propagandist.jooq.Tables.SENDGRID_EVENT
 import io.propagandist.recibir.support.PostgresContainer
-import io.propagandist.recibir.support.TestKeyPair
+import io.propagandist.recibir.support.registerSendGridProperties
 import org.jooq.DSLContext
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -177,9 +177,7 @@ class SendGridEventIngestServiceTest {
         @DynamicPropertySource
         fun properties(registry: DynamicPropertyRegistry) {
             PostgresContainer.register(registry)
-            // 投入は署名を見ないが、コンテキストを起動するには鍵が要る
-            // （SendGridWebhookConfiguration。既定値を置いていない）
-            registry.add("sendgrid.webhook.public-key") { TestKeyPair.publicKeyBase64(TestKeyPair.generate()) }
+            registerSendGridProperties(registry)
         }
     }
 }

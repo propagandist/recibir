@@ -1,7 +1,7 @@
 package io.propagandist.recibir.config
 
 import io.propagandist.recibir.support.PostgresContainer
-import io.propagandist.recibir.support.TestKeyPair
+import io.propagandist.recibir.support.registerSendGridProperties
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.slf4j.LoggerFactory
@@ -119,8 +119,7 @@ class CloudLoggingFormatTest {
         @DynamicPropertySource
         fun properties(registry: DynamicPropertyRegistry) {
             PostgresContainer.register(registry)
-            // コンテキストを起動するには鍵が要る（SendGridWebhookConfiguration）
-            registry.add("sendgrid.webhook.public-key") { TestKeyPair.publicKeyBase64(TestKeyPair.generate()) }
+            registerSendGridProperties(registry)
         }
     }
 }

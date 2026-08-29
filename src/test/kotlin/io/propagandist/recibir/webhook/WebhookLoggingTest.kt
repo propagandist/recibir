@@ -3,6 +3,7 @@ package io.propagandist.recibir.webhook
 import io.propagandist.jooq.Tables.SENDGRID_EVENT
 import io.propagandist.recibir.support.PostgresContainer
 import io.propagandist.recibir.support.TestKeyPair
+import io.propagandist.recibir.support.registerSendGridProperties
 import io.propagandist.recibir.support.structuredLogs
 import org.jooq.DSLContext
 import org.junit.jupiter.api.BeforeEach
@@ -185,7 +186,7 @@ class WebhookLoggingTest {
         @DynamicPropertySource
         fun properties(registry: DynamicPropertyRegistry) {
             PostgresContainer.register(registry)
-            registry.add("sendgrid.webhook.public-key") { TestKeyPair.publicKeyBase64(KEY_PAIR) }
+            registerSendGridProperties(registry, TestKeyPair.publicKeyBase64(KEY_PAIR))
         }
     }
 }

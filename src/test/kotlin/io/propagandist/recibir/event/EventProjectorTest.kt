@@ -3,7 +3,7 @@ package io.propagandist.recibir.event
 import io.propagandist.jooq.Tables.EMAIL_ADDRESS_STATE
 import io.propagandist.jooq.Tables.SENDGRID_EVENT
 import io.propagandist.recibir.support.PostgresContainer
-import io.propagandist.recibir.support.TestKeyPair
+import io.propagandist.recibir.support.registerSendGridProperties
 import io.propagandist.recibir.support.structuredLogs
 import org.jooq.DSLContext
 import org.jooq.JSONB
@@ -252,9 +252,7 @@ class EventProjectorTest {
         @DynamicPropertySource
         fun properties(registry: DynamicPropertyRegistry) {
             PostgresContainer.register(registry)
-            // 射影は署名を見ないが、コンテキストを起動するには鍵が要る
-            // （SendGridWebhookConfiguration。既定値を置いていない）
-            registry.add("sendgrid.webhook.public-key") { TestKeyPair.publicKeyBase64(TestKeyPair.generate()) }
+            registerSendGridProperties(registry)
         }
     }
 }
