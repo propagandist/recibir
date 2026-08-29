@@ -3,6 +3,7 @@ package io.propagandist.recibir.webhook
 import io.propagandist.jooq.Tables.SENDGRID_EVENT
 import io.propagandist.recibir.support.PostgresContainer
 import io.propagandist.recibir.support.TestKeyPair
+import io.propagandist.recibir.support.structuredLogs
 import org.jooq.DSLContext
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -17,8 +18,6 @@ import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.post
-import tools.jackson.databind.JsonNode
-import tools.jackson.databind.json.JsonMapper
 import java.security.KeyPair
 import java.time.Instant
 import kotlin.test.assertEquals
@@ -45,25 +44,10 @@ class WebhookLoggingTest {
     @Autowired
     private lateinit var dsl: DSLContext
 
-    @Autowired
-    private lateinit var jsonMapper: JsonMapper
-
     @BeforeEach
     fun clean() {
         dsl.deleteFrom(SENDGRID_EVENT).execute()
     }
-
-    /** `event` が一致する行だけを、出た順に取り出す。 */
-    private fun entries(
-        output: CapturedOutput,
-        event: String,
-    ): List<JsonNode> =
-        output.all
-            .lineSequence()
-            .filter { it.startsWith("{") }
-            .map { jsonMapper.readTree(it) }
-            .filter { it["event"]?.stringValue() == event }
-            .toList()
 
     private fun send(
         payload: String,
@@ -81,7 +65,7 @@ class WebhookLoggingTest {
         // 受信の途絶は、この行が来なくなることで捕まえる（#5）
         send(DELIVERED).andExpect { status { isOk() } }
 
-        assertEquals(1, entries(output, "webhook.received").size)
+        assertEquals(1, structuredLogs(output, "webhook.received").size)
     }
 
     @Test
@@ -92,10 +76,10 @@ class WebhookLoggingTest {
             content { string("") }
         }
 
-        val rejected = entries(output, "webhook.rejected").single()
+        val rejected = structuredLogs(output, "webhook.rejected").single()
         assertEquals("signature_mismatch", rejected["reason"].stringValue())
         // 受信そのものが成立していないので、この行は出ない
-        assertTrue(entries(output, "webhook.received").isEmpty())
+        assertTrue(structuredLogs(output, "webhook.received").isEmpty())
     }
 
     @Test
@@ -103,7 +87,7 @@ class WebhookLoggingTest {
         // 検証を通っていない入力は信頼できない。ログへ流すと、そこが汚れる経路になる
         send(DELIVERED, body = "${DELIVERED}X").andExpect { status { isForbidden() } }
 
-        val rejected = entries(output, "webhook.rejected").single().toString()
+        val rejected = structuredLogs(output, "webhook.rejected").single().toString()
         assertFalse(rejected.contains("user@example.com"), rejected)
         assertFalse(rejected.contains("sg_event_id"), rejected)
     }
@@ -117,7 +101,7 @@ class WebhookLoggingTest {
                 content = DELIVERED.toByteArray()
             }.andExpect { status { isForbidden() } }
 
-        assertEquals("missing_header", entries(output, "webhook.rejected").single()["reason"].stringValue())
+        assertEquals("missing_header", structuredLogs(output, "webhook.rejected").single()["reason"].stringValue())
     }
 
     @Test
@@ -129,7 +113,7 @@ class WebhookLoggingTest {
 
         assertEquals(
             "timestamp_out_of_range",
-            entries(output, "webhook.rejected").single()["reason"].stringValue(),
+            structuredLogs(output, "webhook.rejected").single()["reason"].stringValue(),
         )
     }
 
@@ -139,7 +123,7 @@ class WebhookLoggingTest {
         send(DELIVERED).andExpect { status { isOk() } }
         send(DELIVERED).andExpect { status { isOk() } }
 
-        val ingested = entries(output, "event.ingested")
+        val ingested = structuredLogs(output, "event.ingested")
         assertEquals(2, ingested.size)
         assertEquals(1, ingested[0]["received"].intValue())
         assertEquals(1, ingested[0]["inserted"].intValue())
@@ -158,7 +142,7 @@ class WebhookLoggingTest {
             """.trimIndent(),
         ).andExpect { status { isOk() } }
 
-        val byType = entries(output, "event.ingested").single()["by_type"]
+        val byType = structuredLogs(output, "event.ingested").single()["by_type"]
         assertEquals(1, byType["delivered"].intValue())
         assertEquals(1, byType["bounce"].intValue())
     }
@@ -169,15 +153,15 @@ class WebhookLoggingTest {
         // （README「200 と 500 の切り分け」）。気づく手段はこの 1 行だけである
         send("""[{"sg_event_id":"a",""").andExpect { status { isOk() } }
 
-        assertEquals(1, entries(output, "event.unparseable").size)
-        assertTrue(entries(output, "event.ingested").isEmpty())
+        assertEquals(1, structuredLogs(output, "event.unparseable").size)
+        assertTrue(structuredLogs(output, "event.ingested").isEmpty())
     }
 
     @Test
     fun `解釈できないボディの中身はログに出ない`(output: CapturedOutput) {
         send("""[{"sg_event_id":"a","email":"user@example.com",""").andExpect { status { isOk() } }
 
-        val unparseable = entries(output, "event.unparseable").single().toString()
+        val unparseable = structuredLogs(output, "event.unparseable").single().toString()
         assertFalse(unparseable.contains("user@example.com"), unparseable)
     }
 
@@ -185,7 +169,7 @@ class WebhookLoggingTest {
     fun `ログの各行は severity と message を持つ`(output: CapturedOutput) {
         send(DELIVERED).andExpect { status { isOk() } }
 
-        val received = entries(output, "webhook.received").single()
+        val received = structuredLogs(output, "webhook.received").single()
         assertEquals("INFO", received["severity"].stringValue())
         assertTrue(received["message"].stringValue().isNotEmpty())
         assertNull(received["stack_trace"])
