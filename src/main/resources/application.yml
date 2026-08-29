@@ -30,3 +30,8 @@ logging:
 sendgrid:
   webhook:
     public-key: ${SENDGRID_WEBHOOK_PUBLIC_KEY}
+  # Suppression API との突き合わせ（docs/SPEC.md §4.5）が使う。
+  # ここも既定値を書かない。空を既定にすると、キーを設定し忘れたまま起動でき、
+  # 突き合わせが 401 で失敗し続けるのに受信だけは動いている状態になる。
+  api:
+    key: ${SENDGRID_API_KEY}
