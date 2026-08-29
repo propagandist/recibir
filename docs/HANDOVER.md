@@ -139,6 +139,11 @@ Kotlin の data class では use-site target を明示しないと
 
 - [ ] ライセンスヘッダを全ファイルに入れるか、`NOTICE` に集約するか
 - [ ] `SuppressionReconciler` の実行時刻
+- [ ] `SuppressionReconciler` が付けた `reason_code` を、`EventProjector` が上書きしてよいか。
+      **イベントが 1 件も無い状態行は触らない**（射影は `sendgrid_event` に出てくる
+      アドレスだけを回す）。ただし**イベントもある**アドレスに `invalid` が付いていた場合は、
+      次の射影で消える。`docs/SPEC.md` §4.5 は「SendGrid 側を正とする」と書いており、
+      **どちらを採るかは作業順序 9 で決まる**
 
 ## やらないこと（再確認）
 
