@@ -1,5 +1,7 @@
 # recibir
 
+[![CI](https://github.com/propagandist/recibir/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/propagandist/recibir/actions/workflows/ci.yml)
+
 SendGrid Event Webhook の受信リファレンス実装。
 Kotlin / Spring Boot 4.1 / jOOQ / PostgreSQL。
 
@@ -173,6 +175,12 @@ ngrok / Cloudflare Tunnel などでトンネルを張ってください。
 
 テストは SendGrid アカウントなしで通ります。署名検証のテストは
 EC P-256 の鍵ペアをテスト内で生成し、自己署名して検証する構成です。
+
+**上の `flywayMigrate` → `jooqCodegen` → `build` は、CI でも同じ順序で回しています**
+（[.github/workflows/ci.yml](.github/workflows/ci.yml)）。SendGrid アカウントも
+外部サービスも無いランナーで通ることを、PR ごとに確かめています——上のバッジが指すのが
+その結果です。codegen 用の DB は `docker compose` の代わりに service container で
+立てますが、接続先の値は同じです。
 
 ---
 
