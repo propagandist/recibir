@@ -165,16 +165,43 @@ Suppression API の `created` は「リストに載った時刻」である。
 
 ### 4.6 セキュリティ設定（`config/`）
 
-フィルタチェーンを分離する。
+フィルタチェーンを分離する。**2 本である。**
 
 | チェーン | 対象 | 方針 |
 |---|---|---|
-| webhook | `/webhooks/sendgrid/**` | permitAll。csrf 無効、STATELESS。認証は署名検証が担う |
-| oauth（任意） | 同上 | `sendgrid.webhook.oauth.enabled=true` のときのみ有効 |
+| webhook | `/webhooks/sendgrid/**` | csrf 無効、STATELESS。認証は署名検証が担う |
 | app | それ以外 | 認証必須 |
+
+**受信口へ OAuth を足しても、チェーンは増えない。** `securityMatcher` が等しいチェーンを
+2 本登録すると、Spring Security が起動時に `UnreachableFilterChainException` で止める
+（2026-08-30 実測）。**1 本の中身が変わる**形になる。
+
+| | 通す相手 | 検証 |
+|---|---|---|
+| OAuth を設定していない | permitAll | 署名のみ |
+| OAuth を設定した | authenticated | 署名 ＋ JWT |
+
+**有効かどうかは `JwtDecoder` Bean の有無で決まる。** 設定のキーをこちらで読まない
+——Boot が `issuer-uri` / `jwk-set-uri` / `public-key-location` のいずれかから組む。
+キー名を実装が持つと、**Boot が読む場所とこちらが見る場所の 2 つになる。**
+
+**推奨は `issuer-uri` である。** あれだけが `iss` クレームの検証を付ける
+——`jwk-set-uri` は鍵の在り処しか言わないので、**別の発行者が同じ鍵で署名したトークンを
+見分けられない。**
+
+**スコープは要求しない。** 認可サーバは利用者のもので、こちらがスコープ名を決められない。
+
+**認可サーバへ繋がらないときは 403 になる。** `issuer-uri` から作られる decoder は
+discovery を最初の検証まで遅延するので**起動は通り**、落ちていることは最初のトークンが
+来たときに分かる。そのとき出る例外は `AuthenticationException` ではないため
+entry point を通らず、**403 とボディなし**で返る（2026-08-30 実測）。
+**署名検証の失敗と同じ番号である。** 捕まえて振り分けてはいない——運用者が見るのは
+ERROR のスタックトレースで、SendGrid は非 2xx を再送するため、認可サーバが戻れば取りこぼさない。
 
 OAuth 有効時の `AuthenticationEntryPoint` は、**レスポンスボディに**
 `invalid_token` を含めること。ヘッダのみでは SendGrid がトークンを再取得しない。
+**ただしトークンが提示されていない要求には含めない**——RFC 6750 §3.1 に従う。
+取り直させる相手がいない。
 
 ### 4.7 構造化ログ
 
@@ -191,11 +218,15 @@ OAuth 有効時の `AuthenticationEntryPoint` は、**レスポンスボディ�
 | `event` | severity | 載せるもの | 何に気づけるか |
 |---|---|---|---|
 | `webhook.received` | INFO | — | **受信の途絶** |
-| `webhook.rejected` | WARNING | 失敗理由 | 公開鍵の設定ミス / リプレイ / 攻撃 |
+| `webhook.rejected` | WARNING | 失敗理由 | 公開鍵・認可サーバの設定ミス / リプレイ / 攻撃 |
 | `event.ingested` | INFO | 受信件数、新規件数、種類別内訳 | 重複を除いた実数 |
 | `event.unparseable` | WARNING | — | 解釈できないボディ（§4.2 は 200 を返すので他に手段が無い） |
 | `address.unsendable` | WARNING | マスク済みアドレス、`reason_code` | バウンス・スパム報告の発生 |
 | `reconcile.drift` | WARNING | 差分件数、`source` | **Webhook の取りこぼし量** |
+
+**`webhook.rejected` は署名検証とトークン検証の両方が使う**（§4.6）。どちらも受信口が
+弾いたことで、`reason` が見分ける。**行を増やしていない**——運用が条件にするのは
+「弾かれているか」であって、内訳はそのあとに絞り込むものである。
 
 **`webhook.received` と `event.ingested` を両方出すのが要点である。** 前者だけでは
 再送された重複を実数と読む。後者だけでは、**403 で全部弾かれている状態と、
@@ -215,19 +246,24 @@ OAuth 有効時の `AuthenticationEntryPoint` は、**レスポンスボディ�
 **`webhook.rejected` と `event.unparseable` には載せない**——検証を通っていない入力と、
 解釈できなかった入力は、何が入っているか分からない。
 
+**アクセストークンも載せない。** 秘密そのものであり、ログへ流すと**保管先が 1 つ増える**。
+
 ## 5. 設定
 
 ```yaml
 sendgrid:
   webhook:
     public-key: ${SENDGRID_WEBHOOK_PUBLIC_KEY}
-    oauth:
-      enabled: false
   api:
     key: ${SENDGRID_API_KEY}      # Suppression API 用
 ```
 
 設定項目はこれ以上増やさない。
+
+OAuth を使うときだけ、Spring 標準の
+`spring.security.oauth2.resourceserver.jwt.issuer-uri` を渡す（§4.6）。
+**`sendgrid.*` に専用のフラグを置かない。** 独立した 2 つの設定があると
+「有効なのに検証先が無い」状態ができ、**そのときの挙動を別に決めることになる。**
 
 ## 6. 非機能
 

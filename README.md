@@ -134,6 +134,14 @@ Spring Security 標準の `BearerTokenAuthenticationEntryPoint` は
 `WWW-Authenticate` ヘッダにしか error を載せず、ボディは空です。そのままだと
 SendGrid はトークンを取り直さず、401 を出し続けたままイベントが失われます。
 
+recibir はこれを
+[config/SendGridBearerTokenEntryPoint.kt](src/main/kotlin/io/propagandist/recibir/config/SendGridBearerTokenEntryPoint.kt)
+で塞いでいます。標準実装へ委譲してステータスとヘッダを書かせ、**ボディを足すだけ**に
+してあります——`WWW-Authenticate` の書式は Security の版で増えるので、写すとずれます。
+
+トークンが送られてこなかった要求には、逆に**エラーコードを書きません**（RFC 6750 §3.1）。
+取り直させる相手がいないためです。
+
 ### 200 と 500 の切り分け
 
 SendGrid は非 2xx を再送します。DB 障害時に 200 を返すとイベントは永久に失われ、
@@ -167,6 +175,11 @@ ngrok / Cloudflare Tunnel などでトンネルを張ってください。
 **既定値は置いていないので、鍵を渡さないと起動しません。** 空で起動できるようにすると、
 設定を忘れたまま全イベントを 403 で弾き続けることになり、それは「解こうとしている問題」が挙げた
 **最も気づきにくい障害**と同じ形になります——通知は 1 通も飛ばず、ログも静かなままです。
+
+**OAuth を使う場合は、`spring.security.oauth2.resourceserver.jwt.issuer-uri` に
+認可サーバの issuer を渡してください。** 渡したときだけ受信口がトークンを要求します
+（[docs/SPEC.md](docs/SPEC.md) §4.6）。`sendgrid.*` の側に専用のフラグはありません
+——独立した 2 つの設定があると、「有効なのに検証先が無い」状態ができるためです。
 
 > **順序に注意:** 受信側を検証対応にしてから SendGrid 側で有効化してください。
 > 逆にすると全イベントが 403 で弾かれます。
