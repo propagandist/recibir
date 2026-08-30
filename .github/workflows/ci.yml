@@ -40,6 +40,10 @@ jobs:
     # Testcontainers がイメージを引く時間と、キャッシュが無い初回のビルドで伸びる。
     timeout-minutes: 30
 
+    # ★★ この services ブロックは image.yml（#56）と同じ値を持つ。片方だけ直さないこと。
+    #   重複を workflow_call へ切り出さないのは、間接参照が増えて失敗が静かに起きる
+    #   ためである（判断規約 §4 が YAML アンカーを見送ったのと同じ形）。
+    #
     # ★ この PostgreSQL は jOOQ の codegen 用である。テストはこれを使わない。
     #   テストは Testcontainers が自分で立てる（src/test/kotlin/.../support/PostgresContainer.kt）。
     #   分けてあるのは、テストがこちらのスキーマを汚すと次の jooqCodegen の入力が

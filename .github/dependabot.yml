@@ -16,3 +16,15 @@ updates:
     directory: /
     schedule:
       interval: weekly
+
+  # Dockerfile の base image は digest でピンしてある。github-actions の SHA ピンと
+  # まったく同じ形で、更新経路を作らないと凍結したまま残り、浮動タグより悪くなる。
+  # 更新 PR は digest と末尾のタグのコメントを一緒に書き換える。
+  #
+  # ★ 見るのはリポジトリ直下の Dockerfile だけである。イメージを作るのは
+  #   .github/workflows/image.yml だが、そちらが持つのは action の SHA で、
+  #   base image の版は Dockerfile の 1 行にしか出ない（#56 の判断 3）。
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
