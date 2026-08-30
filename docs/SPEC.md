@@ -277,5 +277,6 @@ OAuth を使うときだけ、Spring 標準の
 - [ ] `SendGridSignatureVerifier` のテストが `docs/repository-layout.md` の観点を網羅
 - [ ] Testcontainers による DB テストが CI で通る
 - [ ] README / SECURITY / LICENSE / NOTICE が揃っている
-- [ ] `docs/design.md` に設計判断の理由が記録されている
+- [ ] `docs/design.md` に、**全体を貫く判断とその現れ**が記録されている
+      （個別のコンポーネントの理由はこの文書と KDoc が持つ）
 - [ ] コミット履歴に機密情報が含まれていない
