@@ -276,7 +276,14 @@ OAuth を使うときだけ、Spring 標準の
 - [ ] 上記コンポーネントが動作し、テストが green
 - [ ] `SendGridSignatureVerifier` のテストが `docs/repository-layout.md` の観点を網羅
 - [ ] Testcontainers による DB テストが CI で通る
-- [ ] README / SECURITY / LICENSE / NOTICE が揃っている
+- [ ] README / SECURITY / LICENSE が揃っている
 - [ ] `docs/design.md` に、**全体を貫く判断とその現れ**が記録されている
       （個別のコンポーネントの理由はこの文書と KDoc が持つ）
 - [ ] コミット履歴に機密情報が含まれていない
+
+**`NOTICE` は置かない。** Apache-2.0 は設置を要求していない——§4(d) が縛るのは
+**「Work が NOTICE を持つ場合」**であり、持たない選択が成り立つ。木に第三者のソースを
+取り込んでおらず（依存は Gradle が解決する）、**書く中身が無い。**
+著作権表示と Twilio の商標注記は `README.md` が持つ——NOTICE へ写せば、そこが 2 か所になる。
+**ライセンスヘッダも全ファイルには入れない。** 読まれることが目的の実装で、
+各ファイルの先頭 13 行が定型文になる（判断は #59）。
