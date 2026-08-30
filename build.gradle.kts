@@ -111,6 +111,13 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-jooq")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    // OAuth を有効にしたときの JWT 検証（docs/SPEC.md §4.6）。
+    // 受信のたびに認可サーバへ問い合わせる introspection を選ばなかったのは、
+    // 外部往復が §6「200 を返すまでを短く保つ」を崩すためである（#43）。
+    // 名前は spring-boot-starter-oauth2-resource-server ではない。あちらも解決できるが、
+    // pom の description が「deprecated in favor of ...-security-...」と書いている
+    // （2026-08-30 実測）。starter-web → starter-webmvc と同じ改名である。
+    implementation("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server")
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     // Boot 4 は Jackson 3 が標準で、パッケージが tools.jackson.* に変わっている
