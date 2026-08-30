@@ -1,0 +1,134 @@
+# develop への push と v* のタグ push で、その commit の SHA で識別できる private イメージを
+# GHCR へ置く。Railway はそれを引く（#48 の決着。この経路の判断は #56）。
+#
+# ★ ci.yml とは別のワークフローである（#56 の判断 1）。
+#   GHCR への push には packages: write が要るが、#45 の受け入れ基準が ci.yml の
+#   permissions を contents: read だけに縛っている。ジョブ単位で上書きする形も採らない
+#   ——あの基準が見ているのは検査ワークフローの権限で、ジョブで足せば同じことになる。
+#
+# ★ paths で絞っていない。ci.yml と同じ理由（判断規約 §1 の表）。recibir は public で、
+#   標準ランナーは org の無料枠を消費しない。絞り損ねてイメージが作られないと、
+#   recibir-ops が指す SHA が黙って古いままになる——「静かに走らない」が最も高くつく。
+#
+# 型と判断規約は propagandist/.github の docs/ci-strategy.md。
+name: イメージ
+
+on:
+  # PR では作らない（#56 の判断 7）。PR にイメージは要らない。
+  push:
+    branches: [develop]
+    tags: ['v*']
+
+# ★ packages: write は GHCR へ push するために要る（判断規約 §4「付けるときは
+#   なぜ要るかをコメントに書く」）。GitHub へ書き戻すのはパッケージだけで、
+#   contents は checkout のための read しか要らない。
+#
+# ★ パッケージを public にする操作をここに置かない。GHCR は public にすると
+#   private に戻せず、既定が private である（#48 の ★）。守るのは「しないこと」だけ。
+permissions:
+  contents: read
+  packages: write
+
+# ★ デプロイ系の型（判断規約 §4）。途中で殺さないのは、殺すとレイヤが中途半端に
+#   上がった状態が残るためである。group に ref を入れていない——目的は同じイメージを
+#   同時に 2 本出さないことで、develop への push と v* のタグ push は待たせてよい
+#   （後者がするのは、既にある SHA タグへ別名を足すことだけ）。
+concurrency:
+  group: image
+  cancel-in-progress: false
+
+jobs:
+  image:
+    name: イメージのビルドと push
+    runs-on: ubuntu-latest
+    # キャッシュが無い初回のビルドと、base image を引く時間で伸びる。
+    timeout-minutes: 30
+
+    # ★★ この services ブロックは ci.yml と同じ値を持つ。片方だけ直さないこと。
+    #   重複を workflow_call へ切り出すと間接参照が増え、失敗が静かに起きる
+    #   （判断規約 §4 が YAML アンカーを見送ったのと同じ形。#56 の判断 4）。
+    #
+    #   ★ この PostgreSQL は jOOQ の codegen 用である。ここではテストを回さないが、
+    #     値を ci.yml と揃えてあるのは build.gradle.kts の flyway / jooq ブロックが
+    #     この接続先を直接持っているためで、別の値を使うと出どころがもう 1 つ増える。
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: recibir
+          POSTGRES_USER: recibir
+          POSTGRES_PASSWORD: recibir
+        ports:
+          - 15432:5432
+        # 立ち上がる前に flywayMigrate を打つと接続拒否で落ちる。compose.yaml と同じ条件。
+        options: >-
+          --health-cmd "pg_isready -U recibir -d recibir"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+
+    steps:
+      # action は SHA でピンする（判断規約 §4）。末尾の版コメントを消さないこと——
+      # Dependabot が SHA と一緒に書き換える対象で、消すとどの版なのか読めなくなる。
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          # build.gradle.kts の toolchain と同じ版。ここが古いと toolchain の解決で落ちる。
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      # ★ 以下 3 つの順序を変えない。スキーマの入った DB が無いと codegen は空を吐き、
+      #   io.propagandist.jooq.* が解決できずに永続化層が一切コンパイルできない
+      #   （CLAUDE.md「ビルドと実行」）。ci.yml と同じ順序である。
+      - name: スキーマ適用
+        run: ./gradlew flywayMigrate
+
+      - name: jOOQ コード生成
+        run: ./gradlew jooqCodegen
+
+      # ★ build ではなく bootJar である。ktlintCheck もテストも、同じ commit に対して
+      #   ci.yml が回す。ここで回すと二重になり、イメージが出るのが遅くなるだけになる
+      #   ——このワークフローの役割はイメージを作ることで、検査ではない。
+      - name: jar を作る
+        run: ./gradlew bootJar
+
+      # Dockerfile 側でワイルドカードを使わない。build/libs に何が入るかは回したタスクで
+      # 変わる（build なら plain jar も出る）ので、どれを包むかをここで決める。
+      - name: 包む jar を固定名にする
+        run: cp build/libs/recibir-*.jar app.jar
+
+      # ★ docker 系の action を足していない。単段のイメージに buildx の機能
+      #   （キャッシュ・multi-arch・attestation）が 1 つも要らず、足すぶんだけ
+      #   SHA ピンと Dependabot の対象が増える。
+      #
+      # ★ ${{ }} を run の中へ直接展開しない。式の展開はシェルが構文を読むより先に
+      #   起きるので、ref 名に何が入っても文字列のままになる形にしてある。
+      - name: GHCR へログイン
+        env:
+          ACTOR: ${{ github.actor }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$TOKEN" | docker login ghcr.io --username "$ACTOR" --password-stdin
+
+      # ★ latest を作らない（#56 の判断 5）。recibir-ops が指すタグが古ければ、それが
+      #   本体と本番の差である——可変タグを指させると、その差が見えなくなる。
+      #
+      # ★ v* のタグを打った日は、版タグを別名として追加する（同 判断 6）。主は SHA の
+      #   ままで、版タグはそれを指す。揃える／揃えないの分岐を作らずに両方が読める。
+      - name: イメージをビルドして push
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}
+          SHA: ${{ github.sha }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          docker build --tag "$IMAGE:$SHA" .
+          docker push "$IMAGE:$SHA"
+          if [ "$REF_TYPE" = tag ]; then
+            docker tag "$IMAGE:$SHA" "$IMAGE:$REF_NAME"
+            docker push "$IMAGE:$REF_NAME"
+          fi
