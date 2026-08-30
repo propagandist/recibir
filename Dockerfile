@@ -7,13 +7,17 @@
 # 同じ未確認を Docker のビルド段階へ持ち込まないために、jar は
 # .github/workflows/image.yml が service container 付きで作り、ここは包むだけにする。
 #
-# ★ base image は digest でピンしてある（同 判断 9）。末尾のタグのコメントを消さないこと
-#   ——Dependabot が digest と一緒に書き換える対象で、消すとどの版なのか読めなくなる
+# ★ base image は digest でピンしてある（同 判断 9）。タグを消さないこと——Dependabot が
+#   digest と一緒に書き換える対象で、消すとどの版なのか読めなくなる
 #   （.github/dependabot.yml の docker entry。action を SHA でピンするのと同じ形）。
+#
+#   ★ ci.yml の action と違い、版を行末のコメントで書けない。Dockerfile の # は行頭にしか
+#     置けず、FROM の後ろに付けると parse error になる（2026-08-30 実測）。
+#     digest が優先されるので、タグは版を読ませるためだけに残してある。
 #
 # ★ JDK ではなく JRE を採る。実行に javac は要らず、イメージに入れるものが減る。
 #   版は build.gradle.kts の toolchain と .github/workflows/ の setup-java に揃えてある。
-FROM eclipse-temurin:25-jre@sha256:f9e65324a37f28209ce7dd0e5149a7aa954520ed936fb87813cf6ded2400a112 # 25-jre
+FROM eclipse-temurin:25-jre@sha256:f9e65324a37f28209ce7dd0e5149a7aa954520ed936fb87813cf6ded2400a112
 
 # root で動かさない。ベースイメージが非 root のユーザーを持たないので、ここで作る。
 # 受けるのは外部から届く POST であり（docs/SPEC.md §4.2）、プロセスが権限を持つ理由が無い。
