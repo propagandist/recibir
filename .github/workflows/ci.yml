@@ -1,0 +1,97 @@
+# SendGrid アカウント・GCP・Railway・認可サーバのどれも無い環境で、
+# flywayMigrate → jooqCodegen → build が通ることを、このリポジトリの外から示す。
+#
+# 型は propagandist/.github の workflow-templates/ci-heavy.yml から始めた。
+# 判断規約は同 docs/ci-strategy.md。
+#
+# ★ paths で絞っていない。テンプレートの型から外してある。
+#   recibir は public リポジトリで、標準ランナーは org の無料枠を消費しない（同 §1 の表）。
+#   絞って得られるのは待ち時間だけで、枠は減らない。一方、絞り損ねると
+#   検査が走らないまま既定ブランチに変更が入る——同 §4 が YAML アンカーを見送った理由と
+#   同じ形で、「静かに走らない」が最も高くつく。
+#   リファレンス実装なので、完成すればコミットが止まる（README）。回る回数自体が少ない。
+#
+# ★ ジョブを 1 本にまとめてある。
+#   ktlintCheck も test も codegen が前提なので、分けると flywayMigrate → jooqCodegen を
+#   2 回回すことになる。ジョブを分ける根拠（同 §2 の切り上げ損）は課金の話で、
+#   public には効かない。失敗の切り分けは Gradle の出力で読める。
+name: CI
+
+on:
+  # PR 側はブランチで絞らない。paths を外したのと同じ理由で、走らない経路を作らない。
+  pull_request:
+  # push 側は develop だけ。ここが要るのは、既定ブランチが緑であることを指す先が
+  # PR の run とは別に要るためである（README のバッジが指すのもここ）。
+  push:
+    branches: [develop]
+
+# checkout してビルドツールを回すだけで、GitHub へ書き戻すものは何も無い。
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ビルドと検査
+    runs-on: ubuntu-latest
+    # Testcontainers がイメージを引く時間と、キャッシュが無い初回のビルドで伸びる。
+    timeout-minutes: 30
+
+    # ★ この PostgreSQL は jOOQ の codegen 用である。テストはこれを使わない。
+    #   テストは Testcontainers が自分で立てる（src/test/kotlin/.../support/PostgresContainer.kt）。
+    #   分けてあるのは、テストがこちらのスキーマを汚すと次の jooqCodegen の入力が
+    #   変わるためである（docs/HANDOVER.md「詰まりやすいところ」）。
+    #
+    #   接続情報とポートは compose.yaml と同じ値にしてある。build.gradle.kts の
+    #   flyway / jooq ブロックがこの値を直接持っており、ここで別の値を使うと
+    #   同じ値の出どころが 4 か所目になる（src/main/resources/application.yml のコメント）。
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: recibir
+          POSTGRES_USER: recibir
+          POSTGRES_PASSWORD: recibir
+        ports:
+          - 15432:5432
+        # 立ち上がる前に flywayMigrate を打つと接続拒否で落ちる。compose.yaml と同じ条件。
+        options: >-
+          --health-cmd "pg_isready -U recibir -d recibir"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+
+    steps:
+      # action は SHA でピンする（判断規約 §4）。末尾の版コメントを消さないこと——
+      # Dependabot が SHA と一緒に書き換える対象で、消すとどの版なのか読めなくなる。
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          # build.gradle.kts の toolchain と同じ版。ここが古いと toolchain の解決で落ちる。
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      # ★ 以下 3 つの順序を変えない。スキーマの入った DB が無いと codegen は空を吐き、
+      #   io.propagandist.jooq.* が解決できずに永続化層が一切コンパイルできない
+      #   （CLAUDE.md「ビルドと実行」／ docs/HANDOVER.md 作業順序 4）。
+      #   これまで文章で警告していただけの順序を、機械が踏む場所がここになる。
+      - name: スキーマ適用
+        run: ./gradlew flywayMigrate
+
+      - name: jOOQ コード生成
+        run: ./gradlew jooqCodegen
+
+      # ktlintCheck は check の依存として build に入る。テストは Testcontainers が
+      # ランナーの Docker を使う（docs/HANDOVER.md「テストに Docker が要る」）。
+      # SendGrid の資格情報は要らない——署名検証のテストは EC P-256 の鍵ペアを
+      # テスト内で生成して自己署名する（README「動かす」）。
+      - name: ビルドとテスト
+        run: ./gradlew build

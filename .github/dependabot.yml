@@ -1,0 +1,18 @@
+# ci.yml の SHA ピンは、これとセットで初めて安全になる（propagandist/.github の
+# docs/ci-strategy.md §4）。凍結したまま放置すると、セキュリティ修正が降りてこない
+# ぶん浮動タグより悪い。更新 PR は SHA と末尾の版コメントを一緒に書き換える。
+#
+# ★ gradle は置いていない。
+#   版の正本は Spring Boot の BOM で、build.gradle.kts が直接持つ版は
+#   プラグインの行など少数である（同ファイルのコメント）。加えてこのリポジトリは
+#   dependencyLocking で 3 本の lockfile を commit しており、Dependabot が
+#   それを一緒に書き換えるかを確かめていない（2026-08-30 時点で、公式文書に
+#   Gradle の lockfile を扱うという記述を見つけられなかった）。
+#   書き換えないなら、lockfile がずれた PR が CI で落ち続けることになる。
+#   足すなら、まず 1 本通して lockfile がどうなるかを見てからにする。
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
