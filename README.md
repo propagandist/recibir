@@ -11,7 +11,7 @@ Kotlin / Spring Boot 4.1 / jOOQ / PostgreSQL。
 
 *A reference implementation of a SendGrid Event Webhook receiver, written in Kotlin
 with Spring Boot 4.1, jOOQ and PostgreSQL. Not a library — read it, take what you need.
-Feature-complete by design; see [CONTRIBUTING.md](CONTRIBUTING.md).*
+Feature-complete by design.*
 
 ---
 
@@ -208,3 +208,7 @@ Twilio Inc. とは無関係であり、公式に承認されたものではあ�
 ## 作っているところ
 
 [PROPAGANDIST CORPORATION](https://propagandist.co.jp) — 横浜のシステム開発会社です。
+
+---
+
+Issue / PR は受け付けますが、対応は保証しません。

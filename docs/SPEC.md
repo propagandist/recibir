@@ -240,6 +240,6 @@ sendgrid:
 - [ ] 上記コンポーネントが動作し、テストが green
 - [ ] `SendGridSignatureVerifier` のテストが `docs/repository-layout.md` の観点を網羅
 - [ ] Testcontainers による DB テストが CI で通る
-- [ ] README / CONTRIBUTING / SECURITY / LICENSE / NOTICE が揃っている
+- [ ] README / SECURITY / LICENSE / NOTICE が揃っている
 - [ ] `docs/design.md` に設計判断の理由が記録されている
 - [ ] コミット履歴に機密情報が含まれていない
