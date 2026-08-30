@@ -35,3 +35,14 @@ sendgrid:
   # 突き合わせが 401 で失敗し続けるのに受信だけは動いている状態になる。
   api:
     key: ${SENDGRID_API_KEY}
+
+# OAuth を使うときだけ、認可サーバの issuer を渡す（docs/SPEC.md §4.6）。
+#
+#   SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://...
+#
+# ここにキーを書かない。書けば値が要り、渡さない人が起動できなくなる——
+# OAuth を使わない側が既定なので、使わない人に設定を強いることになる。
+# 入口を issuer-uri の 1 つに決めた理由は config/SendGridOAuthSecurityConfig.kt にある。
+#
+# これも docs/SPEC.md §5 の「設定項目」ではない。§5 が増やさないと決めているのは
+# sendgrid.* であり、上のログの出力形式と同じ扱いである。
