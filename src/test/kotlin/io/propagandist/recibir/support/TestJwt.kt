@@ -16,7 +16,7 @@ import java.util.Date
  * テスト用の RSA 鍵ペアと、それで署名した JWT を作るヘルパー。
  *
  * **認可サーバを立てない。** SendGrid の OAuth は利用者が用意した認可サーバから
- * トークンを取る形だが（`config/SendGridOAuthSecurityConfig`）、**検証する側**を試すのに
+ * トークンを取る形だが（`config/SecurityConfig`）、**検証する側**を試すのに
  * 本物は要らない——鍵ペアをその場で作り、公開鍵から組んだ `JwtDecoder` に読ませる。
  * [TestKeyPair] が署名検証に対してやっているのと同じ構えである。
  *

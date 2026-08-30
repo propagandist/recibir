@@ -42,7 +42,7 @@ sendgrid:
 #
 # ここにキーを書かない。書けば値が要り、渡さない人が起動できなくなる——
 # OAuth を使わない側が既定なので、使わない人に設定を強いることになる。
-# 入口を issuer-uri の 1 つに決めた理由は config/SendGridOAuthSecurityConfig.kt にある。
+# 入口を issuer-uri の 1 つに決めた理由は config/SecurityConfig.kt にある。
 #
 # これも docs/SPEC.md §5 の「設定項目」ではない。§5 が増やさないと決めているのは
 # sendgrid.* であり、上のログの出力形式と同じ扱いである。
