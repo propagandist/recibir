@@ -98,9 +98,17 @@ jobs:
         run: ./gradlew bootJar
 
       # Dockerfile 側でワイルドカードを使わない。build/libs に何が入るかは回したタスクで
-      # 変わる（build なら plain jar も出る）ので、どれを包むかをここで決める。
+      # 変わるので、どれを包むかをここで決める。
+      #
+      # ★ -plain.jar を除いている。bootJar しか回さないここでは並ばないが、build を回すと
+      #   jar タスクの出力が並ぶ（2026-08-30 に手元で確認した）。ワイルドカードが 2 つに
+      #   当たった日に、どちらが包まれるかを運に任せない。test -f はそれを同時に見ている
+      #   ——複数なら変数が改行を含み、ファイルとして存在しないので落ちる。
       - name: 包む jar を固定名にする
-        run: cp build/libs/recibir-*.jar app.jar
+        run: |
+          jar=$(find build/libs -name 'recibir-*.jar' ! -name '*-plain.jar')
+          test -f "$jar"
+          cp "$jar" app.jar
 
       # ★ docker 系の action を足していない。単段のイメージに buildx の機能
       #   （キャッシュ・multi-arch・attestation）が 1 つも要らず、足すぶんだけ
