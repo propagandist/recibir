@@ -21,8 +21,8 @@ or the contact form at <https://www.propagandist.co.jp/contact/>.*
 
 - `SendGridSignatureVerifier` — ECDSA 署名検証。誤った署名を通してしまう、
   タイムスタンプ許容範囲の検証が機能しない、といった問題
-- `SecurityConfig` / `SendGridOAuthSecurityConfig` — フィルタチェーンの設定ミスにより
-  認証を回避できる、意図せず他の経路が公開される、といった問題
+- `SecurityConfig` — フィルタチェーンの設定ミスにより認証を回避できる、
+  意図せず他の経路が公開される、といった問題
 - 受信ペイロードの取り扱いに起因する問題（SQL インジェクション、
   過大なペイロードによるリソース枯渇など）
 
