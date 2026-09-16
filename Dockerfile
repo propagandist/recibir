@@ -17,7 +17,7 @@
 #
 # ★ JDK ではなく JRE を採る。実行に javac は要らず、イメージに入れるものが減る。
 #   版は build.gradle.kts の toolchain と .github/workflows/ の setup-java に揃えてある。
-FROM eclipse-temurin:25-jre@sha256:f9e65324a37f28209ce7dd0e5149a7aa954520ed936fb87813cf6ded2400a112
+FROM eclipse-temurin:25-jre@sha256:611e326900ba9edcedfb246ede24efc66a911fa496ac623db9f33cae88a2d83b
 
 # root で動かさない。ベースイメージが非 root のユーザーを持たないので、ここで作る。
 # 受けるのは外部から届く POST であり（docs/SPEC.md §4.2）、プロセスが権限を持つ理由が無い。
