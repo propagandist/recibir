@@ -1,11 +1,11 @@
 #!/bin/sh
 # PreToolUse(Write|Edit): .claude/settings.json へ手元固有の絶対パスが書かれたら実行前に拒否する。
 #
-# ★ なぜ要るか — 実際に踏んだ（#77）。
+# ★ なぜ要るか — 実際に踏んだ（propagandist/.github#77）。
 #   org のリポジトリで、permissions の allow と additionalDirectories に作業者の手元の絶対パスが
 #   commit されていた。**別の作業者の環境には存在しない**うえ、パスの一部が作業ツリーの名前なので
 #   **その作業が終われば消える**。設定ファイルの中で「状態を書いた」形になっている。
-#   **規約では止まらなかった**——規約（docs/work-conventions.md）はこの時点で無かったが、
+#   **規約では止まらなかった**——規約（propagandist/.github の docs/work-conventions.md）はこの時点で無かったが、
 #   入っている形が **1 回限りのコマンドがそのまま規則になったもの**（`Bash(explorer.exe "d:\…")` /
 #   `Bash(cmd /c "mklink /D …")`）なので、**人が読んで書いたとは考えにくい**。だから構造で塞ぐ
 #   （reject-powershell-syntax.sh と同じ判断）。**どの経路で入ったかは確かめていない。**
@@ -26,8 +26,23 @@
 # ★★ JSON 全体を grep しない。**hook の入力には transcript_path・cwd・file_path が必ず入り、
 #   どれも絶対パス**なので、全体を見ると必ず当たる——「常に拒否」になって使いものにならない。
 #   tool_input 以降を取り、その中の file_path を落としてから見る。
-#   （reject-powershell-syntax.sh が全体を grep できるのは、探すのが `@'` + 改行という
+#   （reject-powershell-syntax.sh が閉じ記号を全体から探せるのは、探すのが改行 + 閉じ記号という
 #   入力側には現れない並びだから。**同じ形を持ち込まない。**）
+#
+# ★ 見るのは書き込む側だけ（propagandist/.github#85）。Edit の `old_string`（消す側）は落としてから見る——
+#   見ると、**入ってしまったパスを同じ経路で取り除けない。**
+#
+# ★ 整形された JSON でも同じ答えを出す（propagandist/.github#85）。キーの後の空白と、構造の改行を許す。
+#   **整形された入力で file_path を落とし損ねると、絶対パスの file_path が本文に残り、
+#   settings.json への書き込みが例外なく止まる**——関門を外す変更すら通らない。
+#   実際に届く入力が整形されているかは確かめていない。**どちらでも同じ答えになる形にしてある。**
+#   文字列の中の改行は JSON 上で `\n` にエスケープされているので、空白へ寄せて落ちるのは
+#   構造の改行だけ。
+#
+# ★ Bash からの書き込み（`sed -i` など）は見ない（propagandist/.github#85）。**取り違えを止める関門で、
+#   迂回を止めるものではない。** matcher に Bash を足すとコマンド全体が判定に掛かり、
+#   **パスを grep する作業まで止まる**。しかも Bash の matcher は `if` で絞れない
+#   （どちらも propagandist/.github の `.claude/rules/agent-settings.md` §3）。
 #
 # ★ jq に依存しない — Git Bash に jq は無い。sed と grep だけで書く。
 #
@@ -36,6 +51,8 @@
 #   2. 引用符か開き括弧の直後のドライブ表記（`"Read(//d/…` `"Bash(/d/…`）
 #   3. `/home/` と `/Users/`
 #   相対パス（`.claude/hooks/…`）と `${CLAUDE_PROJECT_DIR}` には当たらない。
+#   **WSL（`/mnt/d/…`）と UNC（`\\server\…`）にも当たらない。** 入った例を踏んでいないので
+#   足していない（判断の記録は propagandist/.github#85）。**入ったら足す。**
 #
 # ★★ 1 の前に「英数字が来ないこと」を要求している。要求しないと **`https://` の `s:/` に当たる**
 #   ——`$schema` の URL を書いた瞬間に、正当な設定が拒否される（実際に踏みかけた）。
@@ -47,7 +64,12 @@
 
 input=$(cat)
 
-body=$(printf '%s' "$input" | sed 's/.*"tool_input"://; s/"file_path":"[^"]*"//')
+# JSON の文字列 1 つ（エスケープされた引用符を含んでよい）。
+str='"([^"\\]|\\.)*"'
+
+body=$(printf '%s' "$input" | tr '\r\n' '  ' | sed -E \
+  -e 's/.*"tool_input"[[:space:]]*://' \
+  -e "s/\"(file_path|old_string)\"[[:space:]]*:[[:space:]]*${str}//g")
 
 if printf '%s' "$body" | grep -qE '(^|[^A-Za-z0-9])[A-Za-z]:[\\/]|[("]/{1,2}[A-Za-z0-9]/|/(home|Users)/'; then
   cat >&2 <<'MSG'
@@ -59,7 +81,8 @@ if printf '%s' "$body" | grep -qE '(^|[^A-Za-z0-9])[A-Za-z]:[\\/]|[("]/{1,2}[A-Z
 - 手元だけで要るものは .claude/settings.local.json へ（あちらは commit しない）
 - リポジトリ内を指すなら相対パスか ${CLAUDE_PROJECT_DIR} を使う
 
-判断規約は docs/work-conventions.md の「エージェントの設定をどこへ書くか」。
+判断規約は propagandist/.github の docs/work-conventions.md「エージェントの設定をどこへ書くか」。
+propagandist/.github は tinyrules/.github から生成している。規約を直す起票は tinyrules/.github へ。
 MSG
   exit 2
 fi
